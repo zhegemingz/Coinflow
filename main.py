@@ -20,7 +20,12 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                             QFileDialog, QTabWidget)
 from PyQt5.QtGui import QFont, QColor, QPainter, QPixmap
 from PyQt5.QtCore import Qt, QDate
-from PyQt5.QtChart import QChart, QChartView, QPieSeries, QBarSeries, QBarSet, QCategoryAxis, QValueAxis
+
+try:
+    from PyQt5.QtChart import QChart, QChartView, QPieSeries, QBarSeries, QBarSet, QCategoryAxis, QValueAxis
+    HAS_QTCHART = True
+except ImportError:
+    HAS_QTCHART = False
 
 # 交易类型枚举
 class TransactionType(Enum):
@@ -882,6 +887,17 @@ class StatisticsWindow(QWidget):
 
     def update_category_bar_chart(self):
         """更新类别柱状图"""
+        if not HAS_QTCHART:
+            for i in reversed(range(self.category_bar_layout.count())):
+                widget = self.category_bar_layout.itemAt(i).widget()
+                if widget:
+                    widget.deleteLater()
+            no_chart_label = QLabel("图表功能需要 PyQt5-QtChart 模块")
+            no_chart_label.setAlignment(Qt.AlignCenter)
+            no_chart_label.setStyleSheet("font-size: 14px; color: #e74c3c;")
+            self.category_bar_layout.addWidget(no_chart_label)
+            return
+        
         # 清空现有布局
         for i in reversed(range(self.category_bar_layout.count())):
             widget = self.category_bar_layout.itemAt(i).widget()
@@ -959,6 +975,17 @@ class StatisticsWindow(QWidget):
 
     def update_time_bar_chart(self):
         """更新时间轴柱状图"""
+        if not HAS_QTCHART:
+            for i in reversed(range(self.time_bar_layout.count())):
+                widget = self.time_bar_layout.itemAt(i).widget()
+                if widget:
+                    widget.deleteLater()
+            no_chart_label = QLabel("图表功能需要 PyQt5-QtChart 模块")
+            no_chart_label.setAlignment(Qt.AlignCenter)
+            no_chart_label.setStyleSheet("font-size: 14px; color: #e74c3c;")
+            self.time_bar_layout.addWidget(no_chart_label)
+            return
+        
         # 清空现有布局
         for i in reversed(range(self.time_bar_layout.count())):
             widget = self.time_bar_layout.itemAt(i).widget()
