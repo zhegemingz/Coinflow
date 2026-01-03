@@ -77,27 +77,29 @@ class TestDatabaseManagerStatistics:
         family = Family("family1", "我的家庭")
         
         conn = db.get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("INSERT INTO categories VALUES (?, ?, ?)", 
-                      (category_expense.category_id, category_expense.name, category_expense.type.value))
-        cursor.execute("INSERT INTO categories VALUES (?, ?, ?)", 
-                      (category_income.category_id, category_income.name, category_income.type.value))
-        cursor.execute("INSERT INTO users VALUES (?, ?)", (user.user_id, user.name))
-        cursor.execute("INSERT INTO families VALUES (?, ?)", (family.family_id, family.name))
-        
-        base_date = datetime(2024, 1, 1, 12, 0, 0)
-        test_transactions = [
-            ("trans1", 100.0, "支出", "cat1", base_date.strftime('%Y-%m-%d %H:%M:%S'), "午餐", "user1", "family1"),
-            ("trans2", 50.0, "支出", "cat1", (base_date + timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S'), "晚餐", "user1", "family1"),
-            ("trans3", 200.0, "收入", "cat2", base_date.strftime('%Y-%m-%d %H:%M:%S'), "工资", "user1", "family1"),
-            ("trans4", 150.0, "收入", "cat2", (base_date + timedelta(days=2)).strftime('%Y-%m-%d %H:%M:%S'), "奖金", "user1", "family1"),
-            ("trans5", 80.0, "支出", "cat1", (base_date + timedelta(days=2)).strftime('%Y-%m-%d %H:%M:%S'), "早餐", "user1", "family1"),
-        ]
-        
-        cursor.executemany("INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?, ?, ?)", test_transactions)
-        conn.commit()
-        conn.close()
+        try:
+            cursor = conn.cursor()
+            
+            cursor.execute("INSERT INTO categories VALUES (?, ?, ?)", 
+                          (category_expense.category_id, category_expense.name, category_expense.type.value))
+            cursor.execute("INSERT INTO categories VALUES (?, ?, ?)", 
+                          (category_income.category_id, category_income.name, category_income.type.value))
+            cursor.execute("INSERT INTO users VALUES (?, ?)", (user.user_id, user.name))
+            cursor.execute("INSERT INTO families VALUES (?, ?)", (family.family_id, family.name))
+            
+            base_date = datetime(2024, 1, 1, 12, 0, 0)
+            test_transactions = [
+                ("trans1", 100.0, "支出", "cat1", base_date.strftime('%Y-%m-%d %H:%M:%S'), "午餐", "user1", "family1"),
+                ("trans2", 50.0, "支出", "cat1", (base_date + timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S'), "晚餐", "user1", "family1"),
+                ("trans3", 200.0, "收入", "cat2", base_date.strftime('%Y-%m-%d %H:%M:%S'), "工资", "user1", "family1"),
+                ("trans4", 150.0, "收入", "cat2", (base_date + timedelta(days=2)).strftime('%Y-%m-%d %H:%M:%S'), "奖金", "user1", "family1"),
+                ("trans5", 80.0, "支出", "cat1", (base_date + timedelta(days=2)).strftime('%Y-%m-%d %H:%M:%S'), "早餐", "user1", "family1"),
+            ]
+            
+            cursor.executemany("INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?, ?, ?)", test_transactions)
+            conn.commit()
+        finally:
+            conn.close()
         
         yield db
         

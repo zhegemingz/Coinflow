@@ -44,6 +44,7 @@ def cleanup_database(db_path):
                 raise
 
 
+@pytest.mark.stress
 class TestStressFuzzing:
     """大规模压力模糊测试，用于发现潜在的崩溃和性能问题"""
 
