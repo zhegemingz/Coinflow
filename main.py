@@ -293,21 +293,23 @@ class DatabaseManager:
     def get_categories(self, transaction_type=None):
         """获取类别列表"""
         conn = self.get_connection()
-        cursor = conn.cursor()
+        try:
+            cursor = conn.cursor()
 
-        if transaction_type:
-            cursor.execute("SELECT category_id, name, type FROM categories WHERE type = ?",
-                          (transaction_type.value,))
-        else:
-            cursor.execute("SELECT category_id, name, type FROM categories")
+            if transaction_type:
+                cursor.execute("SELECT category_id, name, type FROM categories WHERE type = ?",
+                              (transaction_type.value,))
+            else:
+                cursor.execute("SELECT category_id, name, type FROM categories")
 
-        categories = []
-        for row in cursor.fetchall():
-            category = Category(row[0], row[1], TransactionType(row[2]))
-            categories.append(category)
+            categories = []
+            for row in cursor.fetchall():
+                category = Category(row[0], row[1], TransactionType(row[2]))
+                categories.append(category)
 
-        conn.close()
-        return categories
+            return categories
+        finally:
+            conn.close()
 
     def get_default_user(self):
         """获取默认用户"""
@@ -346,26 +348,28 @@ class DatabaseManager:
     def add_transaction(self, transaction):
         """添加交易记录"""
         conn = self.get_connection()
-        cursor = conn.cursor()
+        try:
+            cursor = conn.cursor()
 
-        cursor.execute('''
-        INSERT INTO transactions
-        (transaction_id, amount, type, category_id, transaction_date, remark, creator_id, family_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (
-            transaction.transaction_id,
-            transaction.amount,
-            transaction.type.value,
-            transaction.category.category_id,
-            transaction.transaction_date.strftime('%Y-%m-%d %H:%M:%S'),
-            transaction.remark,
-            transaction.creator.user_id,
-            transaction.family.family_id
-        ))
+            cursor.execute('''
+            INSERT INTO transactions
+            (transaction_id, amount, type, category_id, transaction_date, remark, creator_id, family_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                transaction.transaction_id,
+                transaction.amount,
+                transaction.type.value,
+                transaction.category.category_id,
+                transaction.transaction_date.strftime('%Y-%m-%d %H:%M:%S'),
+                transaction.remark,
+                transaction.creator.user_id,
+                transaction.family.family_id
+            ))
 
-        conn.commit()
-        conn.close()
-        return True
+            conn.commit()
+            return True
+        finally:
+            conn.close()
 
     def update_transaction(self, transaction):
         """更新交易记录"""
@@ -392,69 +396,73 @@ class DatabaseManager:
     def delete_transaction(self, transaction_id):
         """删除交易记录"""
         conn = self.get_connection()
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM transactions WHERE transaction_id = ?", (transaction_id,))
-        conn.commit()
-        conn.close()
-        return cursor.rowcount > 0
+        try:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM transactions WHERE transaction_id = ?", (transaction_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+        finally:
+            conn.close()
 
     def get_transactions(self, start_date=None, end_date=None, transaction_type=None, category_id=None):
         """获取交易记录，支持筛选条件"""
         conn = self.get_connection()
-        cursor = conn.cursor()
+        try:
+            cursor = conn.cursor()
 
-        # 基础SQL查询
-        query = '''
-        SELECT t.transaction_id, t.amount, t.type, t.category_id, t.transaction_date, t.remark,
-               t.creator_id, t.family_id, c.name as category_name, u.name as creator_name,
-               f.name as family_name
-        FROM transactions t
-        LEFT JOIN categories c ON t.category_id = c.category_id
-        LEFT JOIN users u ON t.creator_id = u.user_id
-        LEFT JOIN families f ON t.family_id = f.family_id
-        WHERE 1=1
-        '''
-        params = []
+            # 基础SQL查询
+            query = '''
+            SELECT t.transaction_id, t.amount, t.type, t.category_id, t.transaction_date, t.remark,
+                   t.creator_id, t.family_id, c.name as category_name, u.name as creator_name,
+                   f.name as family_name
+            FROM transactions t
+            LEFT JOIN categories c ON t.category_id = c.category_id
+            LEFT JOIN users u ON t.creator_id = u.user_id
+            LEFT JOIN families f ON t.family_id = f.family_id
+            WHERE 1=1
+            '''
+            params = []
 
-        # 添加筛选条件
-        if start_date:
-            query += " AND t.transaction_date >= ?"
-            params.append(start_date.strftime('%Y-%m-%d 00:00:00'))
-        if end_date:
-            query += " AND t.transaction_date <= ?"
-            params.append(end_date.strftime('%Y-%m-%d 23:59:59'))
-        if transaction_type:
-            query += " AND t.type = ?"
-            params.append(transaction_type.value)
-        if category_id:
-            query += " AND t.category_id = ?"
-            params.append(category_id)
+            # 添加筛选条件
+            if start_date:
+                query += " AND t.transaction_date >= ?"
+                params.append(start_date.strftime('%Y-%m-%d 00:00:00'))
+            if end_date:
+                query += " AND t.transaction_date <= ?"
+                params.append(end_date.strftime('%Y-%m-%d 23:59:59'))
+            if transaction_type:
+                query += " AND t.type = ?"
+                params.append(transaction_type.value)
+            if category_id:
+                query += " AND t.category_id = ?"
+                params.append(category_id)
 
-        # 添加排序
-        query += " ORDER BY t.transaction_date DESC"
+            # 添加排序
+            query += " ORDER BY t.transaction_date DESC"
 
-        cursor.execute(query, params)
+            cursor.execute(query, params)
 
-        transactions = []
-        for row in cursor.fetchall():
-            # 创建交易对象
-            transaction = Transaction(
-                transaction_id=row[0],
-                amount=row[1],
-                type=TransactionType(row[2]),
-                transaction_date=datetime.strptime(row[4], '%Y-%m-%d %H:%M:%S'),
-                remark=row[5]
-            )
+            transactions = []
+            for row in cursor.fetchall():
+                # 创建交易对象
+                transaction = Transaction(
+                    transaction_id=row[0],
+                    amount=row[1],
+                    type=TransactionType(row[2]),
+                    transaction_date=datetime.strptime(row[4], '%Y-%m-%d %H:%M:%S'),
+                    remark=row[5]
+                )
 
-            # 创建关联对象
-            transaction.category = Category(row[3], row[8], TransactionType(row[2]))
-            transaction.creator = User(row[6], row[9])
-            transaction.family = Family(row[7], row[10])
+                # 创建关联对象
+                transaction.category = Category(row[3], row[8], TransactionType(row[2]))
+                transaction.creator = User(row[6], row[9])
+                transaction.family = Family(row[7], row[10])
 
-            transactions.append(transaction)
+                transactions.append(transaction)
 
-        conn.close()
-        return transactions
+            return transactions
+        finally:
+            conn.close()
 
     def get_transaction_statistics(self, start_date=None, end_date=None, transaction_type=None, category_id=None):
         """获取交易统计信息"""
